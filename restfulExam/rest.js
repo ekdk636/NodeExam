@@ -6,16 +6,15 @@ app.use(bodyParser.urlencoded({extended:false}));
 
 //var users = [];
 
+// MySQL 접속
 var mysql = require('mysql');
-var mongodb = require('mongodb');
-
-var connection = mysql.createConnection(
-{
-  	host     : 'localhost',
-  	user     : 'root',
-  	password : 'test1234',
-  	database : 'restful'
-}); 
+var connection = mysql.createConnection
+({
+  	  host     : 'localhost'
+  	, user     : 'root'
+  	, password : 'test1234'
+  	, database : 'restful'
+});
 
 connection.connect();
 
@@ -195,6 +194,91 @@ app.delete('/user/:id', function(req, res)
 	*/
 
 	//res.send(JSON.stringify({api:'delete user info', id:req.params.id}));
+});
+
+// MongoDB 접속
+var mongodb = require('mongodb');
+
+var mongoClient = require('mongodb').MongoClient;
+var url = 'mongodb://localhost:27017/restful';
+var dbObj = null;
+
+mongoClient.connect(url, function(err, db)
+{
+	console.log('Connected correctly to server');
+	dbObj = db;
+});
+
+app.get('/user/message', function(req, res)
+{
+
+});
+
+app.get('/user/message/:id', function(req, res)
+{
+
+});
+
+app.post('/user/message', function(req, res)
+{
+	console.log(req.body.sender_id);
+	console.log(req.body.receiver_id);
+	console.log(req.body.message);
+
+	connection.query('select id, name from user where id=? or id=?', [req.body.sender_id, req.body.receiver_id]
+	, function(err, results, fields)
+	{
+		if(err)
+		{
+			res.send(JSON.stringify(err));
+		}
+		else
+		{
+			var sender = {};
+			var receiver = {};
+
+			for(var i=0; i<results.length; i++)
+			{
+				if(results[i].id == Number(req.body.sender_id))
+				{
+					sender = results[i];
+				}
+				
+				if(results[i].id == Number(req.body.receiver_id))
+				{
+					receiver = results[i];
+				}
+			}
+
+			var object =
+			{
+				  sender_id : req.body.sender_id
+				, receiver_id : req.body.receiver_id
+				, sender : sender
+				, receiver : receiver
+				, message : req.body.message
+				, created_at : new Date()
+			}
+
+			var messages = dbObj.collection('messages');
+			messages.save(object, function(err, result)
+			{
+				if(err)
+				{
+					res.send(JSON.stringify(err));
+				}
+				else
+				{
+					res.send(JSON.stringify(result));
+				}
+			});
+		}
+	});
+});
+
+app.delete('/user/message/:id', function(req, res)
+{
+
 });
 
 app.listen(52273, function()
